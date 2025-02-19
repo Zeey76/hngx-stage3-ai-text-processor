@@ -19,6 +19,7 @@ const App = () => {
     { code: "ru", name: "Russian" },
     { code: "tr", name: "Turkish" },
     { code: "pt", name: "Portuguese" },
+    { code: "py", name: "Portse" },
   ];
 
   useEffect(() => {
@@ -47,18 +48,6 @@ const App = () => {
     }
   };
 
-  const getLanguageName = (languageCode) => {
-    try {
-      const languageName = new Intl.DisplayNames(["en"], {
-        type: "language",
-      }).of(languageCode);
-      return languageName || languageCode; // Fallback to code if name is not available
-    } catch (error) {
-      console.error("Failed to get language name:", error);
-      return languageCode; // Fallback to code if an error occurs
-    }
-  };
-
   const detectLanguage = async (text) => {
     try {
       const detector = await self.ai.languageDetector.create();
@@ -73,7 +62,19 @@ const App = () => {
     }
   };
 
-  function getConfidenceMessage(confidence, text) {
+  const getLanguageName = (languageCode) => {
+    try {
+      const languageName = new Intl.DisplayNames(["en"], {
+        type: "language",
+      }).of(languageCode);
+      return languageName || languageCode; // Fallback to code if name is not available
+    } catch (error) {
+      console.error("Failed to get language name:", error);
+      return languageCode; // Fallback to code if an error occurs
+    }
+  };
+
+  function getConfidenceMessage(confidence) {
     const isShortText = text.length < 4;
 
     if (isShortText && confidence > 0.3) {
@@ -126,9 +127,8 @@ const App = () => {
         try {
           const { detectedLanguage, confidence } = await detectLanguage(text);
           const detectedLanguageName = getLanguageName(detectedLanguage);
+          const confidenceMessage = getConfidenceMessage(confidence);
           const newDetectionId = Date.now() + 2;
-
-          const confidenceMessage = getConfidenceMessage(confidence, text);
 
           // Language detection result
           const detectionMessage = {
@@ -162,6 +162,7 @@ const App = () => {
       if (!sourceLang) {
         throw new Error("Could not determine source language");
       }
+
       if (sourceLang === targetLang) {
         throw new Error("Cannot translate to the same language");
       }
@@ -181,20 +182,24 @@ const App = () => {
   const handleTranslate = async (messageId) => {
     const selectElement = document.querySelector("select");
     if (!selectElement) return setError("Could not find language selector.");
-  
+
     const targetLang = selectElement.value;
     if (!targetLang) return alert("Please select a target language first");
-  
+
     const message = messages.find((m) => m.id === messageId);
     if (!message) return alert("Message not found");
     if (!message.detectedLanguage || !message.originalText)
       return alert("Source language or text unknown.");
     if (message.translations?.some((t) => t.language === targetLang))
       return alert("Already translated to this language.");
-  
+
     try {
       setIsTranslating(true);
-  
+
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, error: "" } : msg))
+      );
+
       // Add a "Translating..." message
       const translatingMessageId = Date.now() + 100;
       setMessages((prev) => [
@@ -205,10 +210,9 @@ const App = () => {
           isUser: false,
           isTranslating: true,
           originalMessageId: messageId,
-          targetLanguage: targetLang,
         },
       ]);
-  
+
       // Scroll to the "Translating..." message
       setTimeout(() => {
         document
@@ -218,14 +222,17 @@ const App = () => {
             block: "start",
           });
       }, 100);
-  
+
       // Perform translation
       const translator = await createTranslator(
         message.detectedLanguage,
         targetLang
       );
       const translatedText = await translator.translate(message.originalText);
-  
+
+      //A simple delay to make it feel less abrupt
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Update the messages state with the new translation
       setMessages((prev) =>
         prev
@@ -244,7 +251,7 @@ const App = () => {
               : msg
           )
       );
-  
+
       // Scroll to the newly added translation
       setTimeout(() => {
         const translationElement = document.getElementById(
@@ -256,11 +263,11 @@ const App = () => {
             translationElement.getBoundingClientRect().top +
             window.scrollY -
             offset;
-  
+
           window.scrollTo({ top: topPosition, behavior: "smooth" });
         }
       }, 100);
-  
+
       // Reset the select element to "Translate To"
       selectElement.value = "";
     } catch (error) {
@@ -270,9 +277,7 @@ const App = () => {
             (msg) => !(msg.isTranslating && msg.originalMessageId === messageId)
           )
           .map((msg) =>
-            msg.id === messageId
-              ? { ...msg, error: `Translation failed: ${error.message}` }
-              : msg
+            msg.id === messageId ? { ...msg, error: error.message } : msg
           )
       );
       console.error("Translation error:", error);
@@ -293,7 +298,7 @@ const App = () => {
           isDarkMode ? "bg-gray-800" : "bg-white"
         } border-b ${isDarkMode ? "border-gray-700" : "border-gray-200"} z-10`}
       >
-        <div className="max-w-3xl mx-auto flex justify-between items-center">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
           <h1
             className={`text-lg font-semibold uppercase ${
               isDarkMode ? "text-white" : "text-gray-900"
@@ -315,9 +320,10 @@ const App = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="max-w-3xl mx-auto pt-16 pb-[10rem]">
+      <div className="max-w-4xl mx-auto pt-16 pb-[10rem]">
         <div className="p-4 space-y-3">
-          {error === "Please enable Chrome AI APIs in chrome://flags" && (
+          {error ===
+            "Oops! Some language features are not supported on your browser." && (
             <div
               className={`p-4 rounded-lg text-center ${
                 isDarkMode
@@ -328,6 +334,7 @@ const App = () => {
               {error}
             </div>
           )}
+
           {messages.map((message) => (
             <div
               key={message.id}
@@ -338,7 +345,9 @@ const App = () => {
               {/* Message content */}
               <div
                 id={`message-${message.id}`}
-                className="relative max-w-[80%] group"
+                className={`relative max-w-[80%] group transition-opacity duration-500 ease-in-out ${
+                  message.isTranslating ? "opacity-70" : "opacity-100"
+                }`}
               >
                 <div
                   className={`p-3 rounded-2xl ${
@@ -374,10 +383,9 @@ const App = () => {
                 />
               </div>
 
-              {/* Translation Dropdown and Button - Only for the most recent detection */}
               {!message.isUser &&
-                message.detectedLanguage &&
-                !message.isTranslating &&
+                // message.detectedLanguage &&
+                // !message.isTranslating &&
                 message.id === latestDetectionId && (
                   <div className="mt-2 flex gap-2">
                     <select
@@ -410,7 +418,7 @@ const App = () => {
                     <button
                       onClick={() => handleTranslate(message.id)}
                       disabled={isTranslating}
-                      className={`px-4 py-2 rounded-lg text-sm ${
+                      className={`px-4 py-2 rounded-lg text-sm transition-opacity duration-500 ease-in-out ${
                         isDarkMode
                           ? "bg-blue-600 hover:bg-blue-700"
                           : "bg-blue-500 hover:bg-blue-600"
@@ -425,7 +433,7 @@ const App = () => {
                   </div>
                 )}
 
-              {/* Display Translations */}
+              {/* Translations */}
               {message.translations?.map((translation, index) => (
                 <div
                   key={index}
@@ -454,21 +462,19 @@ const App = () => {
                       : "bg-red-50 text-red-600"
                   }`}
                 >
-                  <p className="text-sm leading-relaxed">
-                    {message.error}{" "}
-                    <button
-                      onClick={() =>
-                        setMessages((prevMessages) =>
-                          prevMessages.map((m) =>
-                            m.id === message.id ? { ...m, error: null } : m
-                          )
+                  <p className="text-sm leading-relaxed">{message.error}</p>
+                  <button
+                    onClick={() =>
+                      setMessages((prevMessages) =>
+                        prevMessages.map((m) =>
+                          m.id === message.id ? { ...m, error: null } : m
                         )
-                      }
-                      className="ml-2 text-sm underline"
-                    >
-                      Dismiss
-                    </button>
-                  </p>
+                      )
+                    }
+                    className="mt-1 text-sm underline"
+                  >
+                    Dismiss
+                  </button>
                 </div>
               )}
             </div>
@@ -484,18 +490,18 @@ const App = () => {
           isDarkMode ? "bg-gray-800" : "bg-white"
         } border-t ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}
       >
-        <div className="max-w-3xl mx-auto flex gap-2">
+        <div className="max-w-4xl mx-auto flex gap-2 items-center">
           <textarea
             value={text}
             rows="1"
             onChange={(e) => {
               setText(e.target.value);
               e.target.rows = 1;
-              const newRows = Math.min(4, e.target.scrollHeight / 28);
+              const newRows = Math.min(3, e.target.scrollHeight / 36);
               e.target.rows = newRows;
             }}
             placeholder="Type your message..."
-            className={`flex-1 p-3 rounded-2xl resize-none ${
+            className={`flex-1 p-3 rounded-xl resize-none ${
               isDarkMode
                 ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400"
                 : "bg-gray-100 text-gray-900 border-transparent placeholder-gray-500"
@@ -510,7 +516,7 @@ const App = () => {
           <button
             onClick={handleSend}
             disabled={!isApiSupported || isLoading || !text.trim()}
-            className={`p-3 rounded-full transition ${
+            className={`p-3 rounded-[0.7rem] transition ${
               !isApiSupported || isLoading || !text.trim()
                 ? "bg-gray-400 cursor-not-allowed"
                 : isDarkMode
@@ -518,7 +524,7 @@ const App = () => {
                 : "bg-blue-500 hover:bg-blue-600"
             } text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
           >
-            <Send size={24} />
+            <Send size={20} />
           </button>
         </div>
       </div>
