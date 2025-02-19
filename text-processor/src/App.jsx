@@ -381,7 +381,7 @@ const App = () => {
             onClick={handleSend}
             disabled={!isApiSupported || isLoading || !text.trim()}
             className={`p-3 rounded-full transition ${
-              !text.trim()
+              !isApiSupported || isLoading || !text.trim()
                 ? "bg-gray-400 cursor-not-allowed"
                 : isDarkMode
                 ? "bg-blue-600 hover:bg-blue-700"
