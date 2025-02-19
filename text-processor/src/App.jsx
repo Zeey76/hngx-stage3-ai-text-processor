@@ -181,24 +181,24 @@ const App = () => {
   const handleTranslate = async (messageId) => {
     const selectElement = document.querySelector("select");
     if (!selectElement) return setError("Could not find language selector.");
-
+  
     const targetLang = selectElement.value;
     if (!targetLang) return alert("Please select a target language first");
-
+  
     const message = messages.find((m) => m.id === messageId);
     if (!message) return alert("Message not found");
     if (!message.detectedLanguage || !message.originalText)
       return alert("Source language or text unknown.");
     if (message.translations?.some((t) => t.language === targetLang))
       return alert("Already translated to this language.");
-
+  
     try {
       setIsTranslating(true);
-
+  
+      // Add a "Translating..." message
       const translatingMessageId = Date.now() + 100;
-
       setMessages((prev) => [
-        ...prev.slice(0, prev.indexOf(message) + 1),
+        ...prev,
         {
           id: translatingMessageId,
           text: "Translating...",
@@ -207,9 +207,9 @@ const App = () => {
           originalMessageId: messageId,
           targetLanguage: targetLang,
         },
-        ...prev.slice(prev.indexOf(message) + 1),
       ]);
-
+  
+      // Scroll to the "Translating..." message
       setTimeout(() => {
         document
           .getElementById(`message-${translatingMessageId}`)
@@ -218,13 +218,15 @@ const App = () => {
             block: "start",
           });
       }, 100);
-
+  
+      // Perform translation
       const translator = await createTranslator(
         message.detectedLanguage,
         targetLang
       );
       const translatedText = await translator.translate(message.originalText);
-
+  
+      // Update the messages state with the new translation
       setMessages((prev) =>
         prev
           .filter(
@@ -242,7 +244,7 @@ const App = () => {
               : msg
           )
       );
-
+  
       // Scroll to the newly added translation
       setTimeout(() => {
         const translationElement = document.getElementById(
@@ -254,11 +256,11 @@ const App = () => {
             translationElement.getBoundingClientRect().top +
             window.scrollY -
             offset;
-
+  
           window.scrollTo({ top: topPosition, behavior: "smooth" });
         }
       }, 100);
-
+  
       // Reset the select element to "Translate To"
       selectElement.value = "";
     } catch (error) {
