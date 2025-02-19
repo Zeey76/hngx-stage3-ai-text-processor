@@ -96,6 +96,12 @@ const App = () => {
       setText("");
       setShouldScrollToBottom(true);
 
+      // Reset textarea rows to 1
+      const textarea = document.querySelector("textarea");
+      if (textarea) {
+        textarea.rows = 1;
+      }
+
       setTimeout(async () => {
         try {
           const detectedLanguageCode = await detectLanguage(text);
@@ -111,7 +117,6 @@ const App = () => {
             originalText: text,
           };
           
-          // Update the latest detection ID
           setLatestDetectionId(newDetectionId);
           
           setMessages((prev) => [...prev.slice(0, -1), detectionMessage]); // Replace "Analyzing..." with the actual result
@@ -143,11 +148,6 @@ const App = () => {
       const translator = await window.ai.translator.create({
         sourceLanguage: source,
         targetLanguage: target,
-        // monitor(m) {
-        //   m.addEventListener("downloadprogress", (e) => {
-        //     console.log(`Downloaded ${e.loaded} of ${e.total} bytes`);
-        //   });
-        // },
       });
 
       return translator;
@@ -210,6 +210,9 @@ const App = () => {
               : msg
           )
       );
+
+      // Reset the select element to "Translate To"
+      selectElement.value = "";
     } catch (error) {
       setMessages((prev) =>
         prev
