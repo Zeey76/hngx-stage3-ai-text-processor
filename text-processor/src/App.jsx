@@ -10,6 +10,7 @@ const App = () => {
   const [error, setError] = useState("");
   const [isApiSupported, setIsApiSupported] = useState(false);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false);
+  const [latestDetectionId, setLatestDetectionId] = useState(null);
 
   const targetLanguages = [
     { code: "en", name: "English" },
@@ -99,16 +100,20 @@ const App = () => {
         try {
           const detectedLanguageCode = await detectLanguage(text);
           const detectedLanguageName = getLanguageName(detectedLanguageCode);
+          const newDetectionId = Date.now() + 2;
 
           // Language detection result
           const detectionMessage = {
-            id: Date.now() + 2,
+            id: newDetectionId,
             text: `It looks like you're typing in ${detectedLanguageName}!`,
             isUser: false,
             detectedLanguage: detectedLanguageCode,
-            originalText: text
+            originalText: text,
           };
-
+          
+          // Update the latest detection ID
+          setLatestDetectionId(newDetectionId);
+          
           setMessages((prev) => [...prev.slice(0, -1), detectionMessage]); // Replace "Analyzing..." with the actual result
           setShouldScrollToBottom(true);
         } catch (error) {
@@ -153,36 +158,71 @@ const App = () => {
   };
 
   const handleTranslate = async (messageId) => {
-    const selectElement = document.querySelector(`select[data-message-id="${messageId}"]`);
-    if (!selectElement) return alert("Could not find language selector.");
-    
+    const selectElement = document.querySelector(
+      `select[data-message-id="${messageId}"]`
+    );
+    if (!selectElement) return setError("Could not find language selector.");
+
     const targetLang = selectElement.value;
     if (!targetLang) return alert("Please select a target language first");
-  
+
     const message = messages.find((m) => m.id === messageId);
     if (!message) return alert("Message not found");
-    if (!message.detectedLanguage || !message.originalText) return alert("Source language or text unknown.");
-    if (message.translations?.some((t) => t.language === targetLang)) return alert("Already translated to this language.");
-  
+    if (!message.detectedLanguage || !message.originalText)
+      return alert("Source language or text unknown.");
+    if (message.translations?.some((t) => t.language === targetLang))
+      return alert("Already translated to this language.");
+
     try {
       setMessages((prev) => [
         ...prev.slice(0, prev.indexOf(message) + 1),
-        { id: Date.now() + 100, text: "Translating...", isUser: false, isTranslating: true, originalMessageId: messageId, targetLanguage: targetLang },
+        {
+          id: Date.now() + 100,
+          text: "Translating...",
+          isUser: false,
+          isTranslating: true,
+          originalMessageId: messageId,
+          targetLanguage: targetLang,
+        },
         ...prev.slice(prev.indexOf(message) + 1),
       ]);
-  
-      const translator = await createTranslator(message.detectedLanguage, targetLang);
+
+      const translator = await createTranslator(
+        message.detectedLanguage,
+        targetLang
+      );
       const translatedText = await translator.translate(message.originalText);
-  
+
       setMessages((prev) =>
         prev
-          .filter((msg) => !(msg.isTranslating && msg.originalMessageId === messageId))
-          .map((msg) => (msg.id === messageId ? { ...msg, translations: [...(msg.translations || []), { language: targetLang, text: translatedText }] } : msg))
+          .filter(
+            (msg) => !(msg.isTranslating && msg.originalMessageId === messageId)
+          )
+          .map((msg) =>
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  translations: [
+                    ...(msg.translations || []),
+                    { language: targetLang, text: translatedText },
+                  ],
+                }
+              : msg
+          )
       );
     } catch (error) {
-      alert(`Translation failed: ${error.message}`);
+      setMessages((prev) =>
+        prev
+          .filter(
+            (msg) => !(msg.isTranslating && msg.originalMessageId === messageId)
+          )
+          .map((msg) =>
+            msg.id === messageId
+              ? { ...msg, error: `Translation failed: ${error.message}` }
+              : msg
+          )
+      );
       console.error("Translation error:", error);
-      setMessages((prev) => prev.filter((msg) => !(msg.isTranslating && msg.originalMessageId === messageId)));
     }
   };
 
@@ -222,7 +262,7 @@ const App = () => {
       {/* Main Chat Area */}
       <div className="max-w-3xl mx-auto pt-16 pb-[10rem]">
         <div className="p-4 space-y-3">
-          {error && (
+          {error === "Please enable Chrome AI APIs in chrome://flags" && (
             <div
               className={`p-4 rounded-lg text-center ${
                 isDarkMode
@@ -231,12 +271,6 @@ const App = () => {
               }`}
             >
               {error}
-              <button
-                onClick={() => setError("")}
-                className="ml-2 text-sm underline"
-              >
-                Dismiss
-              </button>
             </div>
           )}
           {messages.map((message) => (
@@ -282,10 +316,11 @@ const App = () => {
                 />
               </div>
 
-              {/* Translation Dropdown and Button */}
+              {/* Translation Dropdown and Button - Only for the most recent detection */}
               {!message.isUser &&
                 message.detectedLanguage &&
-                !message.isTranslating && (
+                !message.isTranslating &&
+                message.id === latestDetectionId && (
                   <div className="mt-2 flex gap-2">
                     <select
                       className={`px-3 py-2 rounded-lg text-sm ${
@@ -341,6 +376,32 @@ const App = () => {
                   </p>
                 </div>
               ))}
+
+              {message.error && (
+                <div
+                  className={`relative max-w-[80%] mt-2 p-3 rounded-2xl ${
+                    isDarkMode
+                      ? "bg-red-900/50 text-red-200"
+                      : "bg-red-50 text-red-600"
+                  }`}
+                >
+                  <p className="text-sm leading-relaxed">
+                    {message.error}{" "}
+                    <button
+                      onClick={() =>
+                        setMessages((prevMessages) =>
+                          prevMessages.map((m) =>
+                            m.id === message.id ? { ...m, error: null } : m
+                          )
+                        )
+                      }
+                      className="ml-2 text-sm underline"
+                    >
+                      Dismiss
+                    </button>
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -397,5 +458,3 @@ const App = () => {
 };
 
 export default App;
-
-
