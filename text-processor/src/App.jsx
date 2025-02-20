@@ -442,6 +442,8 @@ const App = () => {
           {error ===
             "Oops! Some language features are not supported on your browser." && (
             <div
+              role="alert"
+              aria-live="assertive"
               className={`p-4 rounded-lg text-center ${
                 isDarkMode
                   ? "bg-red-900/50 text-red-200"
@@ -458,6 +460,7 @@ const App = () => {
               className={`flex flex-col ${
                 message.isUser ? "items-end" : "items-start"
               }`}
+              aria-live="polite"
             >
               {/* Message content */}
               <div
@@ -480,35 +483,22 @@ const App = () => {
                       ? "bg-gray-700 text-white"
                       : ""
                   }`}
+                  role="article"
+                  aria-label={
+                    message.isUser ? "Your message" : "Received message"
+                  }
                 >
                   <p className="text-sm leading-relaxed">{message.text}</p>
                 </div>
-                {/* Triangle indicator */}
-                <div
-                  className={`absolute top-0 w-4 h-4 ${
-                    message.isUser
-                      ? isDarkMode
-                        ? "bg-blue-600"
-                        : "bg-blue-500"
-                      : isDarkMode
-                      ? "bg-gray-700"
-                      : "bg-gray-200"
-                  } ${message.isUser ? "-right-2" : "-left-2"}`}
-                  style={{
-                    clipPath: message.isUser
-                      ? "polygon(0 0, 0% 100%, 100% 0)"
-                      : "polygon(0 0, 100% 0, 100% 100%)",
-                  }}
-                />
               </div>
 
-              {/* Summarize button for user messages in English longer than 150 characters */}
+              {/* Summarize button */}
               {canSummarize(message) && (
                 <div className="mt-2 flex justify-end">
                   <button
                     id={`summarize-btn-${message.id}`}
                     onClick={() => handleSummarize(message.id)}
-                    disabled={message.isSummarizing}
+                    aria-disabled={message.isSummarizing}
                     className={`px-4 py-2 rounded-lg text-sm transition-opacity duration-500 ease-in-out ${
                       isDarkMode
                         ? "bg-green-600 hover:bg-green-700"
@@ -533,6 +523,7 @@ const App = () => {
               {/* Summary error display */}
               {message.summaryError && (
                 <div
+                  role="alert"
                   className={`max-w-[80%] mt-2 p-3 rounded-2xl ${
                     isDarkMode
                       ? "bg-red-900/50 text-red-200"
@@ -561,58 +552,43 @@ const App = () => {
                 </div>
               )}
 
-              {/* Show translation controls for all detection messages */}
+              {/* Translation controls */}
               {!message.isUser &&
                 message.detectedLanguage &&
                 !message.isTranslating && (
                   <div className="mt-2 flex gap-2">
+                    <label htmlFor={`select-${message.id}`} className="sr-only">
+                      Select language for translation
+                    </label>
                     <select
                       id={`select-${message.id}`}
                       className={`px-3 py-2 rounded-lg text-sm ${
                         isDarkMode
                           ? "bg-gray-800 border-gray-700 text-gray-200"
                           : "bg-white border-gray-300 text-gray-700"
-                      } border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        isTranslating && currentlyTranslatingId === message.id
-                          ? "opacity-50 cursor-not-allowed"
-                          : ""
-                      }`}
+                      } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
                       defaultValue=""
-                      disabled={
-                        isTranslating && currentlyTranslatingId === message.id
-                      }
                     >
                       <option value="" disabled>
                         Translate to
                       </option>
                       {targetLanguages.map((lang) => (
-                        <option
-                          key={lang.code}
-                          value={lang.code}
-                          disabled={
-                            lang.code === message.detectedLanguage ||
-                            (isTranslating &&
-                              currentlyTranslatingId === message.id)
-                          }
-                        >
+                        <option key={lang.code} value={lang.code}>
                           {lang.name}
                         </option>
                       ))}
                     </select>
+
                     <button
                       onClick={() => handleTranslate(message.id)}
-                      disabled={
+                      aria-disabled={
                         isTranslating && currentlyTranslatingId === message.id
                       }
                       className={`px-4 py-2 rounded-lg text-sm transition-opacity duration-500 ease-in-out ${
                         isDarkMode
                           ? "bg-blue-600 hover:bg-blue-700"
                           : "bg-blue-500 hover:bg-blue-600"
-                      } text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        isTranslating && currentlyTranslatingId === message.id
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:bg-blue-600"
-                      }`}
+                      } text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
                     >
                       {isTranslating && currentlyTranslatingId === message.id
                         ? "Translating..."
@@ -637,6 +613,8 @@ const App = () => {
                       ? "bg-gray-700 text-white"
                       : "bg-gray-100 text-gray-900"
                   }`}
+                  role="region"
+                  aria-live="polite"
                 >
                   <p className="text-sm leading-relaxed">{translation.text}</p>
                   {translation.language !== "error" && (
@@ -647,27 +625,6 @@ const App = () => {
                       )?.name || translation.language}
                     </p>
                   )}
-                  {translation.language === "error" && (
-                    <button
-                      onClick={() =>
-                        setMessages((prevMessages) =>
-                          prevMessages.map((m) =>
-                            m.id === message.id
-                              ? {
-                                  ...m,
-                                  translations: m.translations.filter(
-                                    (t) => t.language !== "error"
-                                  ),
-                                }
-                              : m
-                          )
-                        )
-                      }
-                      className="mt-1 text-sm underline"
-                    >
-                      Dismiss
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
@@ -675,7 +632,7 @@ const App = () => {
         </div>
       </div>
 
-      <div ref={messagesEndRef} />
+      <div ref={messagesEndRef} aria-hidden="true" />
 
       {/* Input Area */}
       <InputArea
