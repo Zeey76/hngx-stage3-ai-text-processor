@@ -56,9 +56,8 @@ const App = () => {
 
   const checkApiSupport = async () => {
     const hasLanguageDetector = "ai" in self && "languageDetector" in self.ai;
-    const hasTranslator = "ai" in self && "translator" in self.ai;
-    setIsApiSupported(hasLanguageDetector && hasTranslator);
-    if (!hasLanguageDetector || !hasTranslator) {
+    setIsApiSupported(hasLanguageDetector);
+    if (!hasLanguageDetector) {
       setError(
         "Oops! Some language features are not supported on your browser."
       );
@@ -69,8 +68,6 @@ const App = () => {
     if (!text.trim()) return;
 
     setIsLoading(true);
-    setError("");
-
     try {
       // To detect language to find if it's English
       const { detectedLanguage } = await detectLanguage(text);
@@ -160,9 +157,13 @@ const App = () => {
     try {
       setIsTranslating(true);
       setCurrentlyTranslatingId(messageId);
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === messageId ? { ...msg, error: "" } : msg))
-      );
+
+      // Check if the Summarizer API is supported
+      if (!("ai" in self && "translator" in self.ai)) {
+        throw new Error(
+          "Your browser does not support the translation service."
+        );
+      }
 
       // Find the index of the message to translate
       const messageIndex = messages.findIndex((msg) => msg.id === messageId);
@@ -322,7 +323,9 @@ const App = () => {
 
       // Check if the Summarizer API is supported
       if (!("ai" in self && "summarizer" in self.ai)) {
-        throw new Error("Summarizer API is not supported in this browser.");
+        throw new Error(
+          "The Summarizer API is not supported in your current browser."
+        );
       }
 
       const options = {
