@@ -26,7 +26,7 @@ const Header = ({ isDarkMode, setIsDarkMode, onClearChat }) => {
             }`}
             aria-label="Clear chat history"
           >
-            Clear Chat <span className="sr-only">Clear Chat</span>
+            Clear Chat
           </button>
 
           {/* Dark Mode Toggle */}

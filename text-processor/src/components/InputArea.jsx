@@ -1,6 +1,13 @@
 import { Send } from "lucide-react";
 
-const InputArea = ({ isDarkMode, text, setText, handleSend, isApiSupported, isLoading }) => {
+const InputArea = ({
+  isDarkMode,
+  text,
+  setText,
+  handleSend,
+  isApiSupported,
+  isLoading,
+}) => {
   return (
     <div
       className={`fixed bottom-0 left-0 right-0 p-4 ${

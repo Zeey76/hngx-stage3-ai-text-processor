@@ -1,4 +1,4 @@
-// Check if a message is eligible for summarization
+// To check if a message is eligible for summarization
 export const canSummarize = (message) => {
   return (
     message.isUser &&

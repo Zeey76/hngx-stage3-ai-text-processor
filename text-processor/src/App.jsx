@@ -72,11 +72,11 @@ const App = () => {
     setError("");
 
     try {
-      // Detect language first to find if it's English
+      // To detect language to find if it's English
       const { detectedLanguage } = await detectLanguage(text);
       const { confidence } = await detectLanguage(text);
 
-      // User message with language info
+      // User message
       const userMessage = {
         id: Date.now(),
         text: text,
@@ -84,7 +84,7 @@ const App = () => {
         detectedLanguage: detectedLanguage,
         originalText: text,
         textLength: text.length,
-        isAnalyzing: true, // Add this flag
+        isAnalyzing: true,
       };
 
       // Acknowledgment message
@@ -121,9 +121,7 @@ const App = () => {
           // Update the user message to mark analysis as complete
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === userMessage.id
-                ? { ...msg, isAnalyzing: false } // Mark analysis as complete
-                : msg
+              msg.id === userMessage.id ? { ...msg, isAnalyzing: false } : msg
             )
           );
 
@@ -266,7 +264,7 @@ const App = () => {
                       language: "error",
                       text: error.message,
                       errorId: errorId,
-                    }, // Add error as a translation
+                    },
                   ],
                 }
               : msg
@@ -603,7 +601,7 @@ const App = () => {
                   </div>
                 )}
 
-              {/* Translations*/}
+              {/* Translations */}
               {message.translations?.map((translation, index) => (
                 <div
                   key={index}
@@ -630,29 +628,6 @@ const App = () => {
                         (l) => l.code === translation.language
                       )?.name || translation.language}
                     </p>
-                  )}
-                  {/* Error dismissal button*/}
-                  {translation.language === "error" && (
-                    <button
-                      onClick={() =>
-                        setMessages((prevMessages) =>
-                          prevMessages.map((m) =>
-                            m.id === message.id
-                              ? {
-                                  ...m,
-                                  translations: m.translations.filter(
-                                    (t) => t.language !== "error"
-                                  ),
-                                }
-                              : m
-                          )
-                        )
-                      }
-                      className="mt-1 text-sm underline"
-                      aria-label="Dismiss error message"
-                    >
-                      Dismiss
-                    </button>
                   )}
                 </div>
               ))}
