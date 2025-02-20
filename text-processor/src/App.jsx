@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import InputArea from "./components/InputArea";
 import Header from "./components/Header";
+import { targetLanguages } from "./components/TARGET_LANGUAGES";
+import {
+  detectLanguage,
+  getLanguageName,
+  getConfidenceMessage,
+} from "./functions/languageDetector";
 
 const App = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -12,15 +18,6 @@ const App = () => {
   const [isApiSupported, setIsApiSupported] = useState(false);
   const [currentlyTranslatingId, setCurrentlyTranslatingId] = useState(null);
   const [isTranslating, setIsTranslating] = useState(false);
-
-  const targetLanguages = [
-    { code: "en", name: "English" },
-    { code: "fr", name: "French" },
-    { code: "es", name: "Spanish" },
-    { code: "ru", name: "Russian" },
-    { code: "tr", name: "Turkish" },
-    { code: "pt", name: "Portuguese" },
-  ];
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
@@ -48,50 +45,6 @@ const App = () => {
     }
   };
 
-  const detectLanguage = async (text) => {
-    try {
-      const detector = await self.ai.languageDetector.create();
-      const result = await detector.detect(text);
-      return {
-        detectedLanguage: result[0].detectedLanguage,
-        confidence: result[0].confidence,
-      };
-    } catch (error) {
-      console.error("Language detection failed:", error);
-      throw error;
-    }
-  };
-
-  const getLanguageName = (languageCode) => {
-    try {
-      const languageName = new Intl.DisplayNames(["en"], {
-        type: "language",
-      }).of(languageCode);
-      return languageName || languageCode; // Fallback to code if name is not available
-    } catch (error) {
-      console.error("Failed to get language name:", error);
-      return languageCode; // Fallback to code if an error occurs
-    }
-  };
-
-  function getConfidenceMessage(confidence) {
-    const isShortText = text.length < 4;
-
-    if (isShortText && confidence > 0.3) {
-      return "It's a short text, but I'm fairly sure";
-    }
-
-    if (confidence > 0.85) {
-      return "I'm very confident";
-    } else if (confidence > 0.6) {
-      return "I'm fairly sure";
-    } else if (confidence > 0.4) {
-      return "It seems likely";
-    } else {
-      return "It's uncertain, but it could be";
-    }
-  }
-
   const handleSend = async () => {
     if (!text.trim()) return;
 
@@ -101,6 +54,7 @@ const App = () => {
     try {
       // Detect language first to find if it's English
       const { detectedLanguage } = await detectLanguage(text);
+      const { confidence } = await detectLanguage(text);
 
       // User message with language info
       const userMessage = {
@@ -132,7 +86,7 @@ const App = () => {
       setTimeout(async () => {
         try {
           const detectedLanguageName = getLanguageName(detectedLanguage);
-          const confidenceMessage = getConfidenceMessage(0.9);
+          const confidenceMessage = getConfidenceMessage(confidence, text);
           const newDetectionId = Date.now() + 2;
 
           // Language detection result
