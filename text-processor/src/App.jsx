@@ -427,7 +427,7 @@ const App = () => {
     );
   };
 
-  return (
+  return(
     <div
       className={`min-h-screen ${
         isDarkMode ? "bg-gray-900" : "bg-[hsl(228,33%,97%)]"
@@ -435,7 +435,7 @@ const App = () => {
     >
       {/* Header */}
       <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-
+  
       {/* Main Chat Area */}
       <div className="max-w-4xl mx-auto pt-16 pb-[10rem]">
         <div className="p-4 space-y-3">
@@ -453,7 +453,7 @@ const App = () => {
               {error}
             </div>
           )}
-
+  
           {messages.map((message) => (
             <div
               key={message.id}
@@ -490,8 +490,27 @@ const App = () => {
                 >
                   <p className="text-sm leading-relaxed">{message.text}</p>
                 </div>
+                
+                {/* Triangle indicator - added from second code */}
+                <div
+                  className={`absolute top-0 w-4 h-4 ${
+                    message.isUser
+                      ? isDarkMode
+                        ? "bg-blue-600"
+                        : "bg-blue-500"
+                      : isDarkMode
+                      ? "bg-gray-700"
+                      : "bg-gray-200"
+                  } ${message.isUser ? "-right-2" : "-left-2"}`}
+                  style={{
+                    clipPath: message.isUser
+                      ? "polygon(0 0, 0% 100%, 100% 0)"
+                      : "polygon(0 0, 100% 0, 100% 100%)",
+                  }}
+                  aria-hidden="true"
+                />
               </div>
-
+  
               {/* Summarize button */}
               {canSummarize(message) && (
                 <div className="mt-2 flex justify-end">
@@ -499,6 +518,7 @@ const App = () => {
                     id={`summarize-btn-${message.id}`}
                     onClick={() => handleSummarize(message.id)}
                     aria-disabled={message.isSummarizing}
+                    disabled={message.isSummarizing}
                     className={`px-4 py-2 rounded-lg text-sm transition-opacity duration-500 ease-in-out ${
                       isDarkMode
                         ? "bg-green-600 hover:bg-green-700"
@@ -519,7 +539,7 @@ const App = () => {
                   </button>
                 </div>
               )}
-
+  
               {/* Summary error display */}
               {message.summaryError && (
                 <div
@@ -536,7 +556,7 @@ const App = () => {
                   </p>
                 </div>
               )}
-
+  
               {/* Summary display */}
               {message.summary && (
                 <div
@@ -551,8 +571,8 @@ const App = () => {
                   <p className="text-sm leading-relaxed">{message.summary}</p>
                 </div>
               )}
-
-              {/* Translation controls */}
+  
+              {/* Translation controls - enhanced with features from second code */}
               {!message.isUser &&
                 message.detectedLanguage &&
                 !message.isTranslating && (
@@ -566,29 +586,51 @@ const App = () => {
                         isDarkMode
                           ? "bg-gray-800 border-gray-700 text-gray-200"
                           : "bg-white border-gray-300 text-gray-700"
-                      } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      } border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        isTranslating && currentlyTranslatingId === message.id
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
                       defaultValue=""
+                      disabled={
+                        isTranslating && currentlyTranslatingId === message.id
+                      }
                     >
                       <option value="" disabled>
                         Translate to
                       </option>
                       {targetLanguages.map((lang) => (
-                        <option key={lang.code} value={lang.code}>
+                        <option
+                          key={lang.code}
+                          value={lang.code}
+                          disabled={
+                            lang.code === message.detectedLanguage ||
+                            (isTranslating &&
+                              currentlyTranslatingId === message.id)
+                          }
+                        >
                           {lang.name}
                         </option>
                       ))}
                     </select>
-
+  
                     <button
                       onClick={() => handleTranslate(message.id)}
                       aria-disabled={
+                        isTranslating && currentlyTranslatingId === message.id
+                      }
+                      disabled={
                         isTranslating && currentlyTranslatingId === message.id
                       }
                       className={`px-4 py-2 rounded-lg text-sm transition-opacity duration-500 ease-in-out ${
                         isDarkMode
                           ? "bg-blue-600 hover:bg-blue-700"
                           : "bg-blue-500 hover:bg-blue-600"
-                      } text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      } text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        isTranslating && currentlyTranslatingId === message.id
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-blue-600"
+                      }`}
                     >
                       {isTranslating && currentlyTranslatingId === message.id
                         ? "Translating..."
@@ -596,8 +638,8 @@ const App = () => {
                     </button>
                   </div>
                 )}
-
-              {/* Translations */}
+  
+              {/* Translations - enhanced with dismissal feature from second code */}
               {message.translations?.map((translation, index) => (
                 <div
                   key={index}
@@ -625,15 +667,38 @@ const App = () => {
                       )?.name || translation.language}
                     </p>
                   )}
+                  {/* Error dismissal button - added from second code */}
+                  {translation.language === "error" && (
+                    <button
+                      onClick={() =>
+                        setMessages((prevMessages) =>
+                          prevMessages.map((m) =>
+                            m.id === message.id
+                              ? {
+                                  ...m,
+                                  translations: m.translations.filter(
+                                    (t) => t.language !== "error"
+                                  ),
+                                }
+                              : m
+                          )
+                        )
+                      }
+                      className="mt-1 text-sm underline"
+                      aria-label="Dismiss error message"
+                    >
+                      Dismiss
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           ))}
         </div>
       </div>
-
+  
       <div ref={messagesEndRef} aria-hidden="true" />
-
+  
       {/* Input Area */}
       <InputArea
         isDarkMode={isDarkMode}
