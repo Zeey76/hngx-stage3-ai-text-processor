@@ -8,11 +8,11 @@ const Header = ({isDarkMode, setIsDarkMode}) => {
       >
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <h1
-            className={`text-lg font-semibold uppercase ${
+            className={`text-[1.5rem] font-bold ${
               isDarkMode ? "text-white" : "text-gray-900"
             }`}
           >
-            AI-Powered Translator
+            LinguoAI
           </h1>
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}

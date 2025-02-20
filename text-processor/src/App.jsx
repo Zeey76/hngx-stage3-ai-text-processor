@@ -20,7 +20,6 @@ const App = () => {
     { code: "ru", name: "Russian" },
     { code: "tr", name: "Turkish" },
     { code: "pt", name: "Portuguese" },
-    { code: "py", name: "Portse" },
   ];
 
   useEffect(() => {
@@ -181,10 +180,35 @@ const App = () => {
         throw new Error("Cannot translate to the same language");
       }
 
-      const translator = await self.ai.translator.create({
-        sourceLanguage: sourceLang,
-        targetLanguage: targetLang,
-      });
+      const translatorCapabilities = await self.ai.translator.capabilities();
+      const translationStatus = translatorCapabilities.languagePairAvailable(
+        sourceLang,
+        targetLang
+      );
+
+      if (translationStatus === "no") {
+        throw new Error("Translation not supported for this language pair.");
+      }
+
+      let translator;
+      if (translationStatus === "after-download") {
+        console.log("Downloading language pack...");
+        translator = await self.ai.translator.create({
+          sourceLanguage: sourceLang,
+          targetLanguage: targetLang,
+          monitor(m) {
+            m.addEventListener("downloadprogress", (e) => {
+              console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
+            });
+          },
+        });
+        await translator.ready;
+      } else {
+        translator = await self.ai.translator.create({
+          sourceLanguage: sourceLang,
+          targetLanguage: targetLang,
+        });
+      }
 
       return translator;
     } catch (error) {
