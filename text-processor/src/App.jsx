@@ -504,7 +504,7 @@ const App = () => {
                   <p className="text-sm leading-relaxed">{message.text}</p>
                 </div>
                 
-                {/* Triangle indicator - added from second code */}
+                {/* Triangle indicator */}
                 <div
                   className={`absolute top-0 w-4 h-4 ${
                     message.isUser
@@ -585,7 +585,7 @@ const App = () => {
                 </div>
               )}
   
-              {/* Translation controls - enhanced with features from second code */}
+              {/* Translation controls */}
               {!message.isUser &&
                 message.detectedLanguage &&
                 !message.isTranslating && (
@@ -652,7 +652,7 @@ const App = () => {
                   </div>
                 )}
   
-              {/* Translations - enhanced with dismissal feature from second code */}
+              {/* Translations*/}
               {message.translations?.map((translation, index) => (
                 <div
                   key={index}
@@ -680,7 +680,7 @@ const App = () => {
                       )?.name || translation.language}
                     </p>
                   )}
-                  {/* Error dismissal button - added from second code */}
+                  {/* Error dismissal button*/}
                   {translation.language === "error" && (
                     <button
                       onClick={() =>

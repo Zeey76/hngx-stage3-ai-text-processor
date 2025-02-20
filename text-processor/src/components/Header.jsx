@@ -37,7 +37,9 @@ const Header = ({ isDarkMode, setIsDarkMode, onClearChat }) => {
                 ? "bg-gray-700 hover:bg-gray-600 text-white"
                 : "bg-gray-200 hover:bg-gray-300 text-gray-700"
             }`}
-            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={
+              isDarkMode ? "Switch to light mode" : "Switch to dark mode"
+            }
           >
             {isDarkMode ? <Sun size={22} /> : <Moon size={22} />}
           </button>
