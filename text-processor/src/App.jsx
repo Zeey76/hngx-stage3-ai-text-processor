@@ -7,15 +7,18 @@ import {
   getLanguageName,
   getConfidenceMessage,
 } from "./functions/languageDetector";
+import { createTranslator } from "./functions/Translator";
+import { canSummarize } from "./functions/Summarize";
 
 const App = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
   const [text, setText] = useState("");
   const [messages, setMessages] = useState(() => {
     const savedMessages = localStorage.getItem("chatMessages");
     return savedMessages ? JSON.parse(savedMessages) : [];
   });
-  
   const messagesEndRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -26,6 +29,10 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
+
+  useEffect(() => {
+    localStorage.setItem("darkMode", isDarkMode);
+  }, [isDarkMode]);
 
   const clearChat = () => {
     setMessages([]);
@@ -134,53 +141,6 @@ const App = () => {
       setError("Failed to process message. Please try again.");
       console.error("Error:", error);
       setIsLoading(false);
-    }
-  };
-
-  const createTranslator = async (sourceLang, targetLang) => {
-    try {
-      if (!sourceLang) {
-        throw new Error("Could not determine source language");
-      }
-
-      if (sourceLang === targetLang) {
-        throw new Error("Cannot translate to the same language");
-      }
-
-      const translatorCapabilities = await self.ai.translator.capabilities();
-      const translationStatus = translatorCapabilities.languagePairAvailable(
-        sourceLang,
-        targetLang
-      );
-
-      if (translationStatus === "no") {
-        throw new Error("Translation not supported for this language pair.");
-      }
-
-      let translator;
-      if (translationStatus === "after-download") {
-        console.log("Downloading language pack...");
-        translator = await self.ai.translator.create({
-          sourceLanguage: sourceLang,
-          targetLanguage: targetLang,
-          monitor(m) {
-            m.addEventListener("downloadprogress", (e) => {
-              console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
-            });
-          },
-        });
-        await translator.ready;
-      } else {
-        translator = await self.ai.translator.create({
-          sourceLanguage: sourceLang,
-          targetLanguage: targetLang,
-        });
-      }
-
-      return translator;
-    } catch (error) {
-      console.error("Error creating translator:", error);
-      throw new Error(`Translation setup failed: ${error.message}`);
     }
   };
 
@@ -368,7 +328,7 @@ const App = () => {
       }
 
       const options = {
-        sharedContext: "This is a scientific article",
+        sharedContext: "This is a user message",
         type: "key-points",
         format: "plain-text",
         length: "medium",
@@ -387,9 +347,7 @@ const App = () => {
         await summarizer.ready;
       }
 
-      const summary = await summarizer.summarize(message.text, {
-        context: "This article is intended for a tech-savvy audience.",
-      });
+      const summary = await summarizer.summarize(message.text);
 
       // Set the summary
       setMessages((prev) =>
@@ -412,7 +370,6 @@ const App = () => {
     } catch (error) {
       console.error("Summarization error:", error);
 
-      // Set error state but keep the original message and button visible
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === messageId
@@ -430,25 +387,19 @@ const App = () => {
     }
   };
 
-  // Check if a message is eligible for summarization
-  const canSummarize = (message) => {
-    return (
-      message.isUser &&
-      message.detectedLanguage === "en" &&
-      message.textLength > 150 &&
-      !message.isAnalyzing
-    );
-  };
-
-  return(
+  return (
     <div
       className={`min-h-screen ${
         isDarkMode ? "bg-gray-900" : "bg-[hsl(228,33%,97%)]"
       }`}
     >
       {/* Header */}
-      <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} onClearChat={clearChat}/>
-  
+      <Header
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+        onClearChat={clearChat}
+      />
+
       {/* Main Chat Area */}
       <div className="max-w-4xl mx-auto pt-16 pb-[10rem]">
         <div className="p-4 space-y-3">
@@ -466,7 +417,7 @@ const App = () => {
               {error}
             </div>
           )}
-  
+
           {messages.map((message) => (
             <div
               key={message.id}
@@ -503,7 +454,7 @@ const App = () => {
                 >
                   <p className="text-sm leading-relaxed">{message.text}</p>
                 </div>
-                
+
                 {/* Triangle indicator */}
                 <div
                   className={`absolute top-0 w-4 h-4 ${
@@ -523,7 +474,7 @@ const App = () => {
                   aria-hidden="true"
                 />
               </div>
-  
+
               {/* Summarize button */}
               {canSummarize(message) && (
                 <div className="mt-2 flex justify-end">
@@ -552,7 +503,7 @@ const App = () => {
                   </button>
                 </div>
               )}
-  
+
               {/* Summary error display */}
               {message.summaryError && (
                 <div
@@ -569,7 +520,7 @@ const App = () => {
                   </p>
                 </div>
               )}
-  
+
               {/* Summary display */}
               {message.summary && (
                 <div
@@ -584,7 +535,7 @@ const App = () => {
                   <p className="text-sm leading-relaxed">{message.summary}</p>
                 </div>
               )}
-  
+
               {/* Translation controls */}
               {!message.isUser &&
                 message.detectedLanguage &&
@@ -626,7 +577,7 @@ const App = () => {
                         </option>
                       ))}
                     </select>
-  
+
                     <button
                       onClick={() => handleTranslate(message.id)}
                       aria-disabled={
@@ -651,7 +602,7 @@ const App = () => {
                     </button>
                   </div>
                 )}
-  
+
               {/* Translations*/}
               {message.translations?.map((translation, index) => (
                 <div
@@ -709,9 +660,9 @@ const App = () => {
           ))}
         </div>
       </div>
-  
+
       <div ref={messagesEndRef} aria-hidden="true" />
-  
+
       {/* Input Area */}
       <InputArea
         isDarkMode={isDarkMode}

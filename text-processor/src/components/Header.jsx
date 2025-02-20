@@ -9,11 +9,11 @@ const Header = ({ isDarkMode, setIsDarkMode, onClearChat }) => {
     >
       <div className="max-w-4xl mx-auto flex justify-between items-center">
         <h1
-          className={`text-lg font-semibold uppercase ${
+          className={`text-2xl font-semibold ${
             isDarkMode ? "text-white" : "text-gray-900"
           }`}
         >
-          AI-Powered Translator
+          LinguoAI
         </h1>
         <div className="flex items-center gap-3">
           {/* Clear Chat Button */}
