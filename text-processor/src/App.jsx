@@ -11,13 +11,26 @@ import {
 const App = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [text, setText] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    const savedMessages = localStorage.getItem("chatMessages");
+    return savedMessages ? JSON.parse(savedMessages) : [];
+  });
+  
   const messagesEndRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isApiSupported, setIsApiSupported] = useState(false);
   const [currentlyTranslatingId, setCurrentlyTranslatingId] = useState(null);
   const [isTranslating, setIsTranslating] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("chatMessages", JSON.stringify(messages));
+  }, [messages]);
+
+  const clearChat = () => {
+    setMessages([]);
+    localStorage.removeItem("chatMessages");
+  };
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
@@ -434,7 +447,7 @@ const App = () => {
       }`}
     >
       {/* Header */}
-      <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+      <Header isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} onClearChat={clearChat}/>
   
       {/* Main Chat Area */}
       <div className="max-w-4xl mx-auto pt-16 pb-[10rem]">
