@@ -31,7 +31,7 @@ const InputArea = ({
               : "bg-gray-100 text-gray-900 border-transparent placeholder-gray-500"
           } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && isApiSupported) {
               e.preventDefault();
               handleSend();
             }
@@ -40,11 +40,11 @@ const InputArea = ({
         />
         <button
           onClick={handleSend}
-          disabled={isLoading || !text.trim()}
-          aria-disabled={isLoading || !text.trim()}
+          disabled={!isApiSupported || isLoading || !text.trim()}
+          aria-disabled={!isApiSupported || isLoading || !text.trim()}
           aria-label="Send message"
           className={`p-3 rounded-[0.7rem] transition ${
-            isLoading || !text.trim()
+            !isApiSupported || isLoading || !text.trim()
               ? "bg-gray-400 cursor-not-allowed"
               : isDarkMode
               ? "bg-blue-600 hover:bg-blue-700"
